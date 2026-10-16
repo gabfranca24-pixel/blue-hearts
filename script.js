@@ -16,8 +16,7 @@ camera.position.set(0, 0, 34);
 
 const renderer = new THREE.WebGLRenderer({
   canvas,
-  antialias: true,
-  alpha: false
+  antialias: true
 });
 
 renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
@@ -47,7 +46,7 @@ function heartPoint(t) {
   };
 }
 
-// Distribui as partículas pelo coração
+// Criar as partículas do coração
 for (let i = 0; i < COUNT; i++) {
   const t = Math.random() * TAU;
   const edge = heartPoint(t);
@@ -138,22 +137,24 @@ const dustMaterial = new THREE.PointsMaterial({
 const dust = new THREE.Points(dustGeometry, dustMaterial);
 scene.add(dust);
 
-// Base de energia sob o coração
-const baseCount = 1800;
+// =====================================
+// BASE DE ENERGIA ELÉTRICA
+// =====================================
+
+const baseCount = 3000;
 const basePositions = new Float32Array(baseCount * 3);
 const baseColors = new Float32Array(baseCount * 3);
 const baseData = [];
 
 for (let i = 0; i < baseCount; i++) {
   const angle = Math.random() * TAU;
-  const radius = Math.random() * 5.5;
+  const radius = Math.random() * 6;
 
   basePositions[i * 3] = Math.cos(angle) * radius;
-  basePositions[i * 3 + 1] = -10 + Math.random() * 2;
-  basePositions[i * 3 + 2] =
-    Math.sin(angle) * radius * 0.45;
+  basePositions[i * 3 + 1] = -9 + Math.random() * 1.5;
+  basePositions[i * 3 + 2] = Math.sin(angle) * radius * 0.6;
 
-  const color = Math.random() < 0.7 ? blue : purple;
+  const color = Math.random() < 0.65 ? blue : cyan;
 
   baseColors[i * 3] = color.r;
   baseColors[i * 3 + 1] = color.g;
@@ -161,10 +162,10 @@ for (let i = 0; i < baseCount; i++) {
 
   baseData.push({
     angle,
-    radius,
-    speed: 0.5 + Math.random() * 1.8,
+    radius: 0.5 + Math.random() * 5.5,
+    speed: 1 + Math.random() * 3,
     phase: Math.random() * TAU,
-    height: 2 + Math.random() * 5
+    height: 5 + Math.random() * 7
   });
 }
 
@@ -181,21 +182,25 @@ baseGeometry.setAttribute(
 );
 
 const baseMaterial = new THREE.PointsMaterial({
-  size: 0.09,
+  size: 0.14,
   vertexColors: true,
   transparent: true,
-  opacity: 0.8,
+  opacity: 1,
   blending: THREE.AdditiveBlending,
-  depthWrite: false
+  depthWrite: false,
+  sizeAttenuation: true
 });
 
 const energyBase = new THREE.Points(baseGeometry, baseMaterial);
 scene.add(energyBase);
 
-// Relógio da animação
+// Relógio
 const clock = new THREE.Clock();
 
-// Animação principal
+// =====================================
+// ANIMAÇÃO
+// =====================================
+
 function animate() {
   requestAnimationFrame(animate);
 
@@ -205,6 +210,7 @@ function animate() {
   const cycle = (t % 8) / 8;
   const dissolve = Math.pow(Math.sin(cycle * Math.PI), 2);
 
+  // Movimento das partículas do coração
   for (let i = 0; i < COUNT; i++) {
     const j = i * 3;
     const k = i * 4;
@@ -228,8 +234,8 @@ function animate() {
       targets[j + 2] +
       Math.sin(wobble + t * speed) * dissolve * 4;
 
-    // Vibração sutil
     const shimmer = 0.035;
+
     const nx = Math.sin(t * speed + phase) * shimmer;
     const ny = Math.cos(t * speed + wobble) * shimmer;
 
@@ -248,7 +254,7 @@ function animate() {
   heart.rotation.y = Math.sin(t * 0.4) * 0.1;
   heart.rotation.x = Math.sin(t * 0.3) * 0.04;
 
-  // Brilho variável das partículas
+  // Brilho pulsante
   const glowPulse =
     0.85 + (Math.sin(t * 4) + 1) * 0.35;
 
@@ -283,25 +289,26 @@ function animate() {
     const d = baseData[i];
 
     const rise = (t * d.speed + d.phase) % d.height;
-    const spread = d.radius + rise * 0.22;
+    const spread = d.radius + Math.sin(rise * 0.7) * 0.5;
 
     baseArray[j] =
-      Math.cos(d.angle + t * 0.15) * spread;
+      Math.cos(d.angle + t * 0.25) * spread;
 
-    baseArray[j + 1] = -10 + rise;
+    baseArray[j + 1] = -9 + rise;
 
     baseArray[j + 2] =
-      Math.sin(d.angle + t * 0.15) * spread * 0.45;
+      Math.sin(d.angle + t * 0.25) * spread * 0.6;
   }
 
   baseGeometry.attributes.position.needsUpdate = true;
 
-  baseMaterial.opacity = 0.55 + Math.sin(t * 3) * 0.2;
+  baseMaterial.opacity = 0.75 + Math.sin(t * 4) * 0.2;
+  baseMaterial.size = 0.12 + Math.sin(t * 5) * 0.035;
 
   renderer.render(scene, camera);
 }
 
-// Adaptação para celular e computador
+// Ajustar à tela
 function resize() {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
