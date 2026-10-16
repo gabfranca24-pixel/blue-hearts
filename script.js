@@ -1,4 +1,4 @@
-const WORDS = ["love you", "Love You", "LOVE YOU"];
+const WORDS = ["i love you", "I love you", "I LOVE YOU"];
 
 const COLORS = [
   "#4682b4",
@@ -7,7 +7,8 @@ const COLORS = [
   "#6495ed",
   "#4169e1",
   "#8a2be2",
-  "#9370db"
+  "#9370db",
+  "#ba55d3"
 ];
 
 const particles = [];
@@ -16,7 +17,6 @@ const TAU = Math.PI * 2;
 let scale = 1;
 let startTime = 0;
 let centerText;
-let animationFrame;
 
 function heartXY(t) {
   return {
@@ -52,7 +52,7 @@ function createParticle(x, y, delay, size) {
     top: "50%",
     transform: `translate(${x}px, ${y}px) translate(-50%, -50%)`,
     font: `bold ${size}px Arial, sans-serif`,
-    color,
+    color: color,
     whiteSpace: "nowrap",
     opacity: "0",
     pointerEvents: "none",
@@ -71,40 +71,20 @@ function createParticle(x, y, delay, size) {
   });
 }
 
-// Gera pontos distribuídos uniformemente no interior do coração.
 function randomHeartPoint() {
-  for (let attempt = 0; attempt < 1000; attempt++) {
+  // Distribui os pontos dentro do formato do coração.
+  while (true) {
     const x = Math.random() * 32 - 16;
     const y = Math.random() * 30 - 15;
 
-    // Testa se o ponto está dentro do formato do coração.
-    const t = Math.atan2(y, x);
-    const boundary = heartXY(t);
+    const equation =
+      (x * x + y * y - 1) ** 3 -
+      x * x * y ** 3;
 
-    // Usa a equação paramétrica para criar um limite radial.
-    const angle = Math.atan2(y, x);
-    const bx = 16 * Math.sin(angle) ** 3;
-    const by =
-      13 * Math.cos(angle) -
-      5 * Math.cos(2 * angle) -
-      2 * Math.cos(3 * angle) -
-      Math.cos(4 * angle);
-
-    const maxRadius = Math.hypot(bx, by);
-    const radius = Math.hypot(x, y);
-
-    if (
-      maxRadius > 0 &&
-      radius < maxRadius &&
-      Math.abs(x) < 16 &&
-      y < 14 &&
-      y > -18
-    ) {
-      return { x, y };
+    if (equation <= 0) {
+      return { x: x * 16, y: y * 16 };
     }
   }
-
-  return { x: 0, y: 0 };
 }
 
 function buildHeart() {
@@ -113,7 +93,7 @@ function buildHeart() {
   const outlineCount = 110;
   const fillCount = 95;
 
-  // 1. O contorno aparece primeiro.
+  // 1. Forma o contorno do coração.
   for (let i = 0; i < outlineCount; i++) {
     const point = heartXY(
       (i / outlineCount) * TAU
@@ -127,7 +107,7 @@ function buildHeart() {
     );
   }
 
-  // 2. O interior começa a ser preenchido depois.
+  // 2. Preenche o interior gradualmente.
   for (let i = 0; i < fillCount; i++) {
     const point = randomHeartPoint();
 
@@ -139,10 +119,10 @@ function buildHeart() {
     );
   }
 
-  // 3. O texto central aparece por último.
+  // 3. Texto central: aparece por último.
   centerText = document.createElement("div");
   centerText.className = "heart-center";
-  centerText.textContent = "Love You";
+  centerText.textContent = "I Love You";
 
   Object.assign(centerText.style, {
     position: "fixed",
@@ -165,7 +145,7 @@ function buildHeart() {
 function animate(now) {
   const elapsed = (now - startTime) / 1000;
 
-  // Faz as palavras surgirem gradualmente e brilharem.
+  // Brilho gradual das palavras.
   for (const particle of particles) {
     const progress = Math.max(
       0,
@@ -182,22 +162,31 @@ function animate(now) {
       String(progress * flicker);
   }
 
-  // O texto central surge depois das partículas.
+  // Pulsação contínua do coração inteiro.
+  const heartPulse =
+    1 + 0.035 * Math.sin(elapsed * 2.4);
+
+  for (const particle of particles) {
+    particle.element.style.transform =
+      `translate(${particle.x * heartPulse}px, ${particle.y * heartPulse}px) translate(-50%, -50%) scale(${heartPulse})`;
+  }
+
+  // O texto central aparece depois da formação.
   const centerProgress = Math.max(
     0,
     Math.min(1, (elapsed - 7.5) / 0.8)
   );
 
-  const pulse =
-    1 + 0.025 * Math.sin(elapsed * 3);
+  const textPulse =
+    1 + 0.06 * Math.sin(elapsed * 2.4);
 
   centerText.style.opacity =
     String(centerProgress);
 
   centerText.style.transform =
-    `translate(-50%, -50%) scale(${pulse})`;
+    `translate(-50%, -50%) scale(${textPulse})`;
 
-  animationFrame = requestAnimationFrame(animate);
+  requestAnimationFrame(animate);
 }
 
 function resizeHeart() {
@@ -210,9 +199,6 @@ function resizeHeart() {
     particle.x *= ratio;
     particle.y *= ratio;
 
-    particle.element.style.transform =
-      `translate(${particle.x}px, ${particle.y}px) translate(-50%, -50%)`;
-
     particle.element.style.fontSize =
       `${Math.max(8, scale * 0.55)}px`;
   }
@@ -222,7 +208,6 @@ function resizeHeart() {
 }
 
 function init() {
-  // Evita duplicar partículas se a animação for reiniciada.
   document.querySelectorAll(
     ".heart-word, .heart-center"
   ).forEach(element => element.remove());
@@ -234,7 +219,7 @@ function init() {
   window.addEventListener("resize", resizeHeart);
 
   startTime = performance.now();
-  animationFrame = requestAnimationFrame(animate);
+  requestAnimationFrame(animate);
 }
 
 init();
