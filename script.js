@@ -11,6 +11,7 @@ const camera = new THREE.PerspectiveCamera(
   0.1,
   100
 );
+
 camera.position.set(0, 0, 34);
 
 const renderer = new THREE.WebGLRenderer({
@@ -46,7 +47,7 @@ function heartPoint(t) {
   };
 }
 
-// Distribui as partículas pelo interior do coração
+// Distribui as partículas pelo coração
 for (let i = 0; i < COUNT; i++) {
   const t = Math.random() * TAU;
   const edge = heartPoint(t);
@@ -88,7 +89,7 @@ geometry.setAttribute(
   new THREE.BufferAttribute(colors, 3)
 );
 
-// Material com partículas mais luminosas
+// Brilho das partículas do coração
 const material = new THREE.PointsMaterial({
   size: 0.16,
   vertexColors: true,
@@ -102,7 +103,7 @@ const material = new THREE.PointsMaterial({
 const heart = new THREE.Points(geometry, material);
 scene.add(heart);
 
-// Poeira de partículas ao redor
+// Poeira cósmica ao redor
 const dustCount = 700;
 const dustPositions = new Float32Array(dustCount * 3);
 const dustData = [];
@@ -137,9 +138,64 @@ const dustMaterial = new THREE.PointsMaterial({
 const dust = new THREE.Points(dustGeometry, dustMaterial);
 scene.add(dust);
 
+// Base de energia sob o coração
+const baseCount = 1800;
+const basePositions = new Float32Array(baseCount * 3);
+const baseColors = new Float32Array(baseCount * 3);
+const baseData = [];
+
+for (let i = 0; i < baseCount; i++) {
+  const angle = Math.random() * TAU;
+  const radius = Math.random() * 5.5;
+
+  basePositions[i * 3] = Math.cos(angle) * radius;
+  basePositions[i * 3 + 1] = -10 + Math.random() * 2;
+  basePositions[i * 3 + 2] =
+    Math.sin(angle) * radius * 0.45;
+
+  const color = Math.random() < 0.7 ? blue : purple;
+
+  baseColors[i * 3] = color.r;
+  baseColors[i * 3 + 1] = color.g;
+  baseColors[i * 3 + 2] = color.b;
+
+  baseData.push({
+    angle,
+    radius,
+    speed: 0.5 + Math.random() * 1.8,
+    phase: Math.random() * TAU,
+    height: 2 + Math.random() * 5
+  });
+}
+
+const baseGeometry = new THREE.BufferGeometry();
+
+baseGeometry.setAttribute(
+  "position",
+  new THREE.BufferAttribute(basePositions, 3)
+);
+
+baseGeometry.setAttribute(
+  "color",
+  new THREE.BufferAttribute(baseColors, 3)
+);
+
+const baseMaterial = new THREE.PointsMaterial({
+  size: 0.09,
+  vertexColors: true,
+  transparent: true,
+  opacity: 0.8,
+  blending: THREE.AdditiveBlending,
+  depthWrite: false
+});
+
+const energyBase = new THREE.Points(baseGeometry, baseMaterial);
+scene.add(energyBase);
+
+// Relógio da animação
 const clock = new THREE.Clock();
 
-// Animação
+// Animação principal
 function animate() {
   requestAnimationFrame(animate);
 
@@ -158,7 +214,6 @@ function animate() {
     const direction = randoms[k + 2];
     const wobble = randoms[k + 3];
 
-    // As partículas se afastam e depois retornam
     const outward = dissolve * (2 + direction * 7);
 
     const tx =
@@ -173,32 +228,34 @@ function animate() {
       targets[j + 2] +
       Math.sin(wobble + t * speed) * dissolve * 4;
 
-    // Vibração sutil para dar movimento
+    // Vibração sutil
     const shimmer = 0.035;
-
     const nx = Math.sin(t * speed + phase) * shimmer;
     const ny = Math.cos(t * speed + wobble) * shimmer;
 
     positions[j] += (tx + nx - positions[j]) * 0.055;
-    positions[j + 1] += (ty + ny - positions[j + 1]) * 0.055;
+    positions[j + 1] +=
+      (ty + ny - positions[j + 1]) * 0.055;
     positions[j + 2] += (tz - positions[j + 2]) * 0.055;
   }
 
   geometry.attributes.position.needsUpdate = true;
 
-  // Pulsação e brilho variável
+  // Pulsação do coração
   const pulse = 1 + Math.sin(t * 2.4) * 0.035;
 
   heart.scale.set(pulse, pulse, pulse);
   heart.rotation.y = Math.sin(t * 0.4) * 0.1;
   heart.rotation.x = Math.sin(t * 0.3) * 0.04;
 
-  const glowPulse = 0.85 + (Math.sin(t * 4) + 1) * 0.35;
+  // Brilho variável das partículas
+  const glowPulse =
+    0.85 + (Math.sin(t * 4) + 1) * 0.35;
 
   material.size = 0.12 * glowPulse;
   material.opacity = Math.min(1, 0.72 + glowPulse * 0.2);
 
-  // Movimento da poeira ao redor
+  // Movimento da poeira cósmica
   const dustArray = dustGeometry.attributes.position.array;
 
   for (let i = 0; i < dustCount; i++) {
@@ -218,10 +275,33 @@ function animate() {
   dustGeometry.attributes.position.needsUpdate = true;
   dust.rotation.y = t * 0.01;
 
+  // Partículas de energia subindo da base
+  const baseArray = baseGeometry.attributes.position.array;
+
+  for (let i = 0; i < baseCount; i++) {
+    const j = i * 3;
+    const d = baseData[i];
+
+    const rise = (t * d.speed + d.phase) % d.height;
+    const spread = d.radius + rise * 0.22;
+
+    baseArray[j] =
+      Math.cos(d.angle + t * 0.15) * spread;
+
+    baseArray[j + 1] = -10 + rise;
+
+    baseArray[j + 2] =
+      Math.sin(d.angle + t * 0.15) * spread * 0.45;
+  }
+
+  baseGeometry.attributes.position.needsUpdate = true;
+
+  baseMaterial.opacity = 0.55 + Math.sin(t * 3) * 0.2;
+
   renderer.render(scene, camera);
 }
 
-// Ajusta o coração ao tamanho da tela
+// Adaptação para celular e computador
 function resize() {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
