@@ -9,121 +9,121 @@ function resize() {
 window.addEventListener('resize', resize);
 resize();
 
-// Paleta de cores em tons de roxo, lilás, magenta e azul cósmico
+// Paleta em tons de roxo, lilás, magenta e azul brilhante inspirada no vídeo
 const PURPLE_SHADES = [
   '#ff2a85', // Magenta vibrante
-  '#d90368', // Rosa escuro profundo
-  '#9d4edd', // Roxo vivo
-  '#7b2cbf', // Roxo médio
-  '#5a189a', // Roxo escuro
-  '#e0aaff', // Lilás claro brilhante
-  '#c77dff'  // Lilás suave
+  '#b5179e', // Roxo magenta
+  '#7209b7', // Roxo profundo
+  '#480ca8', // Azul arroxeado escuro
+  '#560bad', // Roxo elétrico
+  '#4cc9f0', // Azul ciano de contraste
+  '#f72585', // Rosa choque
+  '#b5179e'  // Roxo
 ];
 
 const particles = [];
-const particleCount = 1200; // Quantidade densa de partículas para formar o volume
+const particleCount = 1400;
 
-// Equação paramétrica 3D do coração projetada em 2D
-function getHeartPosition(t, scale) {
-  // Equações clássicas do coração
+// Fórmula exata e fechada de coração 2D preenchido
+function getHeartPoint(t, scale) {
   const x = 16 * Math.pow(Math.sin(t), 3);
   const y = -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t));
-  
-  return {
-    x: x * scale,
-    y: y * scale
-  };
+  return { x: x * scale, y: y * scale };
 }
 
 class Particle {
   constructor() {
-    this.reset(true);
+    this.init(true);
   }
 
-    reset(initial = false) {
-    // Ângulo aleatório ao longo da curva do coração (0 a 2*PI)
+  init(isFirst = false) {
+    // Ângulo aleatório para preencher o contorno e o volume interno do coração
     this.t = Math.random() * Math.PI * 2;
+    const scale = Math.min(width, height) / 35;
     
-    // Escala base do coração responsiva ao tamanho da tela
-    const baseScale = Math.min(width, height) / 38;
-    this.baseScale = baseScale;
+    const target = getHeartPoint(this.t, scale);
+    
+    // Posição de destino final no formato do coração
+    this.destX = width / 2 + target.x + (Math.random() - 0.5) * 15;
+    this.destY = height / 2 + target.y + (Math.random() - 0.5) * 15;
 
-    const targetPos = getHeartPosition(this.t, baseScale);
-    
-    // Criando volume tridimensional com dispersão interna
-    this.ox = targetPos.x + (Math.random() - 0.5) * 40;
-    this.oy = targetPos.y + (Math.random() - 0.5) * 40;
-    
-    if (initial) {
-      this.x = width / 2 + this.ox;
-      this.y = height / 2 + this.oy;
+    if (isFirst) {
+      // Inicia espalhado na tela para carregar pronto
+      this.x = Math.random() * width;
+      this.y = Math.random() * height;
     } else {
-      // Começam dispersas do centro para o efeito de formação
-      this.x = width / 2 + (Math.random() - 0.5) * 10;
-      this.y = height / 2 + (Math.random() - 0.5) * 10;
+      // Renascimento a partir do centro (efeito de explosão do vídeo)
+      this.x = width / 2;
+      this.y = height / 2 + 100; // Começa na base do coração
     }
 
-    this.destX = width / 2 + this.ox;
-    this.destY = height / 2 + this.oy;
+    // Velocidade e comportamento dinâmico
+    this.vx = (Math.random() - 0.5) * 6;
+    this.vy = (Math.random() - 0.5) * 6;
+    this.alpha = 0;
+    this.maxAlpha = Math.random() * 0.8 + 0.2;
+    this.life = 0;
+    this.maxLife = Math.random() * 150 + 100; // Tempo de vida da partícula antes de reiniciar
 
-    this.speed = 0.02 + Math.random() * 0.03;
-    this.size = Math.random() * 2.5 + 0.8;
+    this.size = Math.random() * 2.2 + 0.5;
     this.color = PURPLE_SHADES[Math.floor(Math.random() * PURPLE_SHADES.length)];
-    
-    // Propriedades de brilho e pulsação
-    this.alpha = Math.random() * 0.7 + 0.3;
-    this.pulseSpeed = 0.03 + Math.random() * 0.04;
-    this.pulseAngle = Math.random() * Math.PI * 2;
   }
 
   update() {
-    // Movimento suave em direção à forma do coração (Lerp)
-    this.x += (this.destX - this.x) * this.speed;
-    this.y += (this.destY - this.y) * this.speed;
+    this.life++;
+    
+    // Efeito de transição suave em direção ao formato do coração
+    let dx = this.destX - this.x;
+    let dy = this.destY - this.y;
+    
+    this.x += dx * 0.05 + this.vx;
+    this.y += dy * 0.05 + this.vy;
 
-    // Efeito de pulsação luminosa
-    this.pulseAngle += this.pulseSpeed;
-    this.currentSize = this.size + Math.sin(this.pulseAngle) * 0.6;
-    if (this.currentSize < 0.2) this.currentSize = 0.2;
+    // Reduz inércia com o tempo
+    this.vx *= 0.92;
+    this.vy *= 0.92;
+
+    // Controle de opacidade (fade in / fade out)
+    if (this.life < 30) {
+      this.alpha = (this.life / 30) * this.maxAlpha;
+    } else if (this.life > this.maxLife - 30) {
+      this.alpha = ((this.maxLife - this.life) / 30) * this.maxAlpha;
+    }
+
+    // Reinicia a partícula para criar o fluxo contínuo do vídeo
+    if (this.life >= this.maxLife) {
+      this.init(false);
+    }
   }
 
   draw() {
     ctx.save();
-    ctx.globalAlpha = Math.max(0.1, this.alpha + Math.sin(this.pulseAngle) * 0.3);
+    ctx.globalAlpha = Math.max(0, this.alpha);
     ctx.fillStyle = this.color;
-    ctx.shadowBlur = 12;
-    ctx.shadowColor = this.color; // Brilho intenso (glow) nas partículas
+    ctx.shadowBlur = 10;
+    ctx.shadowColor = this.color;
 
     ctx.beginPath();
-    ctx.arc(this.x, this.y, Math.max(0.5, this.currentSize), 0, Math.PI * 2);
+    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
   }
 }
 
-// Inicializar partículas
+// Criar conjunto de partículas
 for (let i = 0; i < particleCount; i++) {
-  particles.push(new Particle());
+  const p = new Particle();
+  // Espalhar o ciclo de vida inicial para não nascerem todas juntas
+  p.life = Math.random() * p.maxLife;
+  particles.push(p);
 }
 
-let time = 0;
-
 function animate() {
-  // Limpar tela com leve rastro para efeito mágico
-  ctx.fillStyle = 'rgba(5, 2, 10, 0.2)';
+  // Fundo com rastro escuro suave para criar o efeito de luz mágica
+  ctx.fillStyle = 'rgba(5, 2, 10, 0.25)';
   ctx.fillRect(0, 0, width, height);
 
-  time += 0.03;
-  const globalPulse = 1 + Math.sin(time * 1.5) * 0.04; // Pulsação global do coração
-
-  const baseScale = Math.min(width, height) / 38;
-
   particles.forEach(p => {
-    // Recalcular posições com a pulsação global para o coração "respirar"
-    const targetPos = getHeartPosition(p.t, baseScale * globalPulse);
-    p.destX = width / 2 + targetPos.x + (Math.sin(time + p.t) * 5);
-    p.destY = height / 2 + targetPos.y + (Math.cos(time + p.t) * 5);
-
     p.update();
     p.draw();
   });
