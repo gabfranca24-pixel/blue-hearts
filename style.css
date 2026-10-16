@@ -4,63 +4,16 @@
   box-sizing: border-box;
 }
 
-html,
 body {
-  width: 100%;
-  height: 100%;
+  background-color: #05020a; /* Fundo escuro com toque cósmico roxo/preto */
   overflow: hidden;
-}
-
-body {
-  background:
-    radial-gradient(ellipse at 50% 50%,
-      #17103a 0%,
-      #09071b 42%,
-      #020208 100%);
-  color: #ffffff;
-  font-family: Georgia, serif;
-}
-
-#heartCanvas {
-  position: fixed;
-  inset: 0;
-  display: block;
-  width: 100%;
-  height: 100%;
-}
-
-.content {
-  position: fixed;
-  inset: 0;
-  z-index: 1;
   display: flex;
-  flex-direction: column;
   justify-content: center;
   align-items: center;
-  text-align: center;
-  pointer-events: none;
+  height: 100vh;
+  width: 100vw;
 }
 
-.subtitle {
-  position: absolute;
-  top: 9%;
-  color: #b9a4ff;
-  font-size: 0.8rem;
-  letter-spacing: 4px;
-  text-shadow: 0 0 12px #8555ff;
-  opacity: 0.8;
-}
-
-h1 {
-  display: none;
-}
-
-.content p:last-child {
-  position: absolute;
-  bottom: 9%;
-  color: #a9caff;
-  font-size: 1rem;
-  letter-spacing: 2px;
-  text-shadow: 0 0 15px #408cff;
-  opacity: 0.8;
+canvas {
+  display: block;
 }
