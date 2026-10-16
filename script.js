@@ -13,11 +13,13 @@ const COLORS = [
 
 const particles = [];
 const stars = [];
+const magicParticles = [];
 const TAU = Math.PI * 2;
 
 let scale = 1;
 let startTime = 0;
 let centerText;
+let animationFrame = null;
 
 function heartXY(t) {
   return {
@@ -37,6 +39,7 @@ function getScale() {
   ) / 40;
 }
 
+// Cria cada palavra luminosa do coração.
 function createParticle(x, y, delay, size) {
   const element = document.createElement("span");
   const color =
@@ -69,11 +72,12 @@ function createParticle(x, y, delay, size) {
     x,
     y,
     delay,
+    size,
     phase: Math.random() * TAU
   });
 }
 
-// Sorteia pontos dentro da forma de coração.
+// Sorteia pontos dentro do formato de coração.
 function randomHeartPoint() {
   while (true) {
     const x = Math.random() * 2 - 1;
@@ -92,7 +96,7 @@ function randomHeartPoint() {
   }
 }
 
-// Estrelas posicionadas perto do contorno do coração.
+// Cria estrelinhas ao redor do coração.
 function createStars() {
   const count = 65;
 
@@ -104,15 +108,10 @@ function createStars() {
       : "#b58aff";
 
     const angle = Math.random() * TAU;
+    const distance = (17 + Math.random() * 7) * scale;
 
-    // Distribui as estrelas ao redor do coração,
-    // usando a escala atual da tela.
-    const extra = (10 + Math.random() * 48) / scale;
-    const radiusX = 17 + extra;
-    const radiusY = 16 + extra;
-
-    const x = Math.cos(angle) * radiusX * scale;
-    const y = Math.sin(angle) * radiusY * scale;
+    const x = Math.cos(angle) * distance;
+    const y = Math.sin(angle) * distance;
 
     const size = 1 + Math.random() * 2.5;
 
@@ -144,13 +143,61 @@ function createStars() {
   }
 }
 
+// Cria poeira estelar azul e roxa.
+function createMagicParticles() {
+  const colors = [
+    "#00bfff",
+    "#4682ff",
+    "#9370db",
+    "#ba55d3",
+    "#c8f0ff"
+  ];
+
+  for (let i = 0; i < 45; i++) {
+    const element = document.createElement("span");
+
+    const size = 2 + Math.random() * 3;
+    const color =
+      colors[Math.floor(Math.random() * colors.length)];
+
+    Object.assign(element.style, {
+      position: "fixed",
+      left: "0",
+      top: "0",
+      width: `${size}px`,
+      height: `${size}px`,
+      borderRadius: "50%",
+      background: color,
+      boxShadow: `0 0 ${size * 3}px ${color}, 0 0 ${size * 5}px ${color}`,
+      pointerEvents: "none",
+      zIndex: "1",
+      opacity: "0",
+      willChange: "transform, opacity"
+    });
+
+    document.body.appendChild(element);
+
+    magicParticles.push({
+      element,
+      size,
+      seed: Math.random() * TAU,
+      speed: 0.5 + Math.random() * 0.8,
+      drift: (Math.random() - 0.5) * 100,
+      phase: Math.random(),
+      startX: (Math.random() - 0.5) * 34,
+      startY: (Math.random() - 0.5) * 26
+    });
+  }
+}
+
+// Forma o coração e o texto central.
 function buildHeart() {
   scale = getScale();
 
   const outlineCount = 110;
   const fillCount = 95;
 
-  // 1. O contorno aparece gradualmente.
+  // 1. Contorno: as palavras surgem gradualmente.
   for (let i = 0; i < outlineCount; i++) {
     const point = heartXY(
       (i / outlineCount) * TAU
@@ -164,7 +211,7 @@ function buildHeart() {
     );
   }
 
-  // 2. O interior vai sendo preenchido.
+  // 2. Preenchimento do coração.
   for (let i = 0; i < fillCount; i++) {
     const point = randomHeartPoint();
 
@@ -176,7 +223,7 @@ function buildHeart() {
     );
   }
 
-  // 3. O texto central aparece por último.
+  // 3. Texto central.
   centerText = document.createElement("div");
   centerText.className = "heart-center";
   centerText.textContent = "I Love You";
@@ -202,10 +249,43 @@ function buildHeart() {
   document.body.appendChild(centerText);
 }
 
+// Anima as partículas mágicas que flutuam para cima.
+function animateMagicParticles(elapsed) {
+  const centerX = window.innerWidth / 2;
+  const centerY = window.innerHeight / 2;
+
+  for (const p of magicParticles) {
+    const cycle =
+      (elapsed * p.speed * 0.22 + p.phase) % 1;
+
+    // Partículas surgem ao redor do coração e sobem.
+    const x =
+      centerX +
+      p.startX * scale +
+      Math.sin(elapsed * 0.8 + p.seed) * 22 +
+      p.drift * cycle;
+
+    const y =
+      centerY +
+      p.startY * scale +
+      100 -
+      cycle * (180 + p.speed * 45);
+
+    // Surgem e desaparecem suavemente.
+    const opacity =
+      Math.sin(cycle * Math.PI) * 0.85;
+
+    p.element.style.transform =
+      `translate(${x}px, ${y}px)`;
+
+    p.element.style.opacity = String(opacity);
+  }
+}
+
 function animate(now) {
   const elapsed = (now - startTime) / 1000;
 
-  // Palavras surgem e cintilam.
+  // Surgimento e cintilação das palavras.
   for (const particle of particles) {
     const progress = Math.max(
       0,
@@ -220,7 +300,7 @@ function animate(now) {
       String(progress * flicker);
   }
 
-  // Pulsação suave, preservando o formato.
+  // Pulsação contínua do coração.
   const pulse =
     1 + 0.035 * Math.sin(elapsed * 2.4);
 
@@ -229,7 +309,7 @@ function animate(now) {
       `translate(-50%, -50%) translate(${particle.x * pulse}px, ${particle.y * pulse}px)`;
   }
 
-  // Texto central aparece depois da formação.
+  // O texto aparece após a formação do coração.
   const centerProgress = Math.max(
     0,
     Math.min(1, (elapsed - 7.5) / 0.8)
@@ -239,10 +319,11 @@ function animate(now) {
     1 + 0.045 * Math.sin(elapsed * 2.4);
 
   centerText.style.opacity = String(centerProgress);
+
   centerText.style.transform =
     `translate(-50%, -50%) scale(${textPulse})`;
 
-  // Estrelas cintilam e flutuam suavemente.
+  // Estrelinhas cintilantes.
   for (const star of stars) {
     const twinkle =
       0.2 +
@@ -262,9 +343,13 @@ function animate(now) {
       `translate(-50%, -50%) translate(${star.x + driftX}px, ${star.y + driftY}px)`;
   }
 
-  requestAnimationFrame(animate);
+  // Poeira estelar flutuando.
+  animateMagicParticles(elapsed);
+
+  animationFrame = requestAnimationFrame(animate);
 }
 
+// Ajusta o desenho ao redimensionar a tela.
 function resizeHeart() {
   const newScale = getScale();
   const ratio = newScale / scale;
@@ -274,9 +359,8 @@ function resizeHeart() {
   for (const particle of particles) {
     particle.x *= ratio;
     particle.y *= ratio;
-
     particle.element.style.fontSize =
-      `${Math.max(7, scale * 0.46)}px`;
+      `${Math.max(7, particle.size * ratio)}px`;
   }
 
   for (const star of stars) {
@@ -284,11 +368,20 @@ function resizeHeart() {
     star.y *= ratio;
   }
 
+  for (const p of magicParticles) {
+    p.startX *= ratio;
+    p.startY *= ratio;
+  }
+
   centerText.style.fontSize =
     `${Math.max(20, scale * 2)}px`;
 }
 
 function init() {
+  if (animationFrame !== null) {
+    cancelAnimationFrame(animationFrame);
+  }
+
   document.querySelectorAll(
     ".heart-word, .heart-center"
   ).forEach(element => element.remove());
@@ -298,13 +391,17 @@ function init() {
   stars.forEach(star => star.element.remove());
   stars.length = 0;
 
+  magicParticles.forEach(p => p.element.remove());
+  magicParticles.length = 0;
+
   buildHeart();
   createStars();
+  createMagicParticles();
 
   window.addEventListener("resize", resizeHeart);
 
   startTime = performance.now();
-  requestAnimationFrame(animate);
+  animationFrame = requestAnimationFrame(animate);
 }
 
 init();
