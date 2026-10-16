@@ -15,7 +15,8 @@ camera.position.set(0, 0, 34);
 
 const renderer = new THREE.WebGLRenderer({
   canvas,
-  antialias: true
+  antialias: true,
+  alpha: false
 });
 
 renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
@@ -26,7 +27,6 @@ const TAU = Math.PI * 2;
 
 const positions = new Float32Array(COUNT * 3);
 const targets = new Float32Array(COUNT * 3);
-const velocities = new Float32Array(COUNT * 3);
 const colors = new Float32Array(COUNT * 3);
 const randoms = new Float32Array(COUNT * 4);
 
@@ -34,16 +34,19 @@ const blue = new THREE.Color("#168fff");
 const cyan = new THREE.Color("#b8f5ff");
 const purple = new THREE.Color("#a34dff");
 
+// Formato do coração
 function heartPoint(t) {
   return {
     x: 16 * Math.pow(Math.sin(t), 3),
-    y: 13 * Math.cos(t)
-      - 5 * Math.cos(2 * t)
-      - 2 * Math.cos(3 * t)
-      - Math.cos(4 * t)
+    y:
+      13 * Math.cos(t) -
+      5 * Math.cos(2 * t) -
+      2 * Math.cos(3 * t) -
+      Math.cos(4 * t)
   };
 }
 
+// Distribui as partículas pelo interior do coração
 for (let i = 0; i < COUNT; i++) {
   const t = Math.random() * TAU;
   const edge = heartPoint(t);
@@ -63,7 +66,10 @@ for (let i = 0; i < COUNT; i++) {
   randoms[i * 4 + 3] = Math.random() * TAU;
 
   const choice = Math.random();
-  const color = choice < 0.62 ? blue : choice < 0.86 ? cyan : purple;
+  const color =
+    choice < 0.62 ? blue :
+    choice < 0.86 ? cyan :
+    purple;
 
   colors[i * 3] = color.r;
   colors[i * 3 + 1] = color.g;
@@ -71,28 +77,32 @@ for (let i = 0; i < COUNT; i++) {
 }
 
 const geometry = new THREE.BufferGeometry();
+
 geometry.setAttribute(
   "position",
   new THREE.BufferAttribute(positions, 3)
 );
+
 geometry.setAttribute(
   "color",
   new THREE.BufferAttribute(colors, 3)
 );
 
+// Material com partículas mais luminosas
 const material = new THREE.PointsMaterial({
-  size: 0.13,
+  size: 0.16,
   vertexColors: true,
   transparent: true,
-  opacity: 0.95,
+  opacity: 1,
   blending: THREE.AdditiveBlending,
-  depthWrite: false
+  depthWrite: false,
+  sizeAttenuation: true
 });
 
 const heart = new THREE.Points(geometry, material);
 scene.add(heart);
 
-// Poeira cósmica ao redor
+// Poeira de partículas ao redor
 const dustCount = 700;
 const dustPositions = new Float32Array(dustCount * 3);
 const dustData = [];
@@ -109,45 +119,36 @@ for (let i = 0; i < dustCount; i++) {
 }
 
 const dustGeometry = new THREE.BufferGeometry();
+
 dustGeometry.setAttribute(
   "position",
   new THREE.BufferAttribute(dustPositions, 3)
 );
 
-const dust = new THREE.Points(
-  dustGeometry,
-  new THREE.PointsMaterial({
-    color: "#5dbbff",
-    size: 0.045,
-    transparent: true,
-    opacity: 0.65,
-    blending: THREE.AdditiveBlending,
-    depthWrite: false
-  })
-);
+const dustMaterial = new THREE.PointsMaterial({
+  color: "#5dbbff",
+  size: 0.045,
+  transparent: true,
+  opacity: 0.65,
+  blending: THREE.AdditiveBlending,
+  depthWrite: false
+});
+
+const dust = new THREE.Points(dustGeometry, dustMaterial);
 scene.add(dust);
 
 const clock = new THREE.Clock();
-const temp = new THREE.Vector3();
 
-function smoothstep(a, b, x) {
-  x = THREE.MathUtils.clamp((x - a) / (b - a), 0, 1);
-  return x * x * (3 - 2 * x);
-}
-
+// Animação
 function animate() {
   requestAnimationFrame(animate);
 
   const t = clock.getElapsedTime();
 
-  // Ciclo: coração definido -> dispersão -> recomposição
+  // Ciclo de dispersão e reconstrução
   const cycle = (t % 8) / 8;
-  const dissolve = Math.pow(
-    Math.sin(cycle * Math.PI),
-    2
-  );
+  const dissolve = Math.pow(Math.sin(cycle * Math.PI), 2);
 
-  // Faz as partículas voarem para fora e retornarem
   for (let i = 0; i < COUNT; i++) {
     const j = i * 3;
     const k = i * 4;
@@ -157,19 +158,24 @@ function animate() {
     const direction = randoms[k + 2];
     const wobble = randoms[k + 3];
 
+    // As partículas se afastam e depois retornam
     const outward = dissolve * (2 + direction * 7);
 
-    const tx = targets[j]
-      + Math.cos(phase + t * speed) * outward;
+    const tx =
+      targets[j] +
+      Math.cos(phase + t * speed) * outward;
 
-    const ty = targets[j + 1]
-      + Math.sin(phase * 1.3 + t * speed) * outward;
+    const ty =
+      targets[j + 1] +
+      Math.sin(phase * 1.3 + t * speed) * outward;
 
-    const tz = targets[j + 2]
-      + Math.sin(wobble + t * speed) * dissolve * 4;
+    const tz =
+      targets[j + 2] +
+      Math.sin(wobble + t * speed) * dissolve * 4;
 
-    // Pequenas vibrações constantes dão vida às partículas
+    // Vibração sutil para dar movimento
     const shimmer = 0.035;
+
     const nx = Math.sin(t * speed + phase) * shimmer;
     const ny = Math.cos(t * speed + wobble) * shimmer;
 
@@ -180,20 +186,30 @@ function animate() {
 
   geometry.attributes.position.needsUpdate = true;
 
+  // Pulsação e brilho variável
   const pulse = 1 + Math.sin(t * 2.4) * 0.035;
+
   heart.scale.set(pulse, pulse, pulse);
   heart.rotation.y = Math.sin(t * 0.4) * 0.1;
   heart.rotation.x = Math.sin(t * 0.3) * 0.04;
 
-  // Movimento lento da poeira cósmica
+  const glowPulse = 0.85 + (Math.sin(t * 4) + 1) * 0.35;
+
+  material.size = 0.12 * glowPulse;
+  material.opacity = Math.min(1, 0.72 + glowPulse * 0.2);
+
+  // Movimento da poeira ao redor
   const dustArray = dustGeometry.attributes.position.array;
 
   for (let i = 0; i < dustCount; i++) {
     const j = i * 3;
     const d = dustData[i];
 
-    dustArray[j + 1] += Math.sin(t * d.speed + d.phase) * 0.002;
-    dustArray[j] += Math.cos(t * d.speed + d.phase) * 0.001;
+    dustArray[j + 1] +=
+      Math.sin(t * d.speed + d.phase) * 0.002;
+
+    dustArray[j] +=
+      Math.cos(t * d.speed + d.phase) * 0.001;
 
     if (dustArray[j] > 13) dustArray[j] = -13;
     if (dustArray[j] < -13) dustArray[j] = 13;
@@ -205,12 +221,15 @@ function animate() {
   renderer.render(scene, camera);
 }
 
+// Ajusta o coração ao tamanho da tela
 function resize() {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
+
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   renderer.setSize(window.innerWidth, window.innerHeight);
 }
 
 window.addEventListener("resize", resize);
+
 animate();
