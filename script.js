@@ -39,7 +39,6 @@ function getScale() {
 
 function createParticle(x, y, delay, size) {
   const element = document.createElement("span");
-
   const color =
     COLORS[Math.floor(Math.random() * COLORS.length)];
 
@@ -58,7 +57,7 @@ function createParticle(x, y, delay, size) {
     whiteSpace: "nowrap",
     opacity: "0",
     pointerEvents: "none",
-    textShadow: `0 0 4px ${color}, 0 0 10px ${color}, 0 0 20px ${color}`,
+    textShadow: `0 0 5px ${color}, 0 0 12px ${color}, 0 0 22px ${color}`,
     zIndex: "2",
     willChange: "transform, opacity"
   });
@@ -74,7 +73,7 @@ function createParticle(x, y, delay, size) {
   });
 }
 
-// Pontos distribuídos dentro do formato do coração.
+// Sorteia pontos dentro da forma de coração.
 function randomHeartPoint() {
   while (true) {
     const x = Math.random() * 2 - 1;
@@ -93,7 +92,7 @@ function randomHeartPoint() {
   }
 }
 
-// Cria pequenas estrelas luminosas ao redor do coração.
+// Estrelas posicionadas perto do contorno do coração.
 function createStars() {
   const count = 65;
 
@@ -105,11 +104,17 @@ function createStars() {
       : "#b58aff";
 
     const angle = Math.random() * TAU;
-    const distance = 125 + Math.random() * 145;
-    const size = 1 + Math.random() * 3;
 
-    const x = Math.cos(angle) * distance;
-    const y = Math.sin(angle) * distance;
+    // Distribui as estrelas ao redor do coração,
+    // usando a escala atual da tela.
+    const extra = (10 + Math.random() * 48) / scale;
+    const radiusX = 17 + extra;
+    const radiusY = 16 + extra;
+
+    const x = Math.cos(angle) * radiusX * scale;
+    const y = Math.sin(angle) * radiusY * scale;
+
+    const size = 1 + Math.random() * 2.5;
 
     Object.assign(element.style, {
       position: "fixed",
@@ -119,7 +124,7 @@ function createStars() {
       height: `${size}px`,
       borderRadius: "50%",
       background: color,
-      boxShadow: `0 0 ${size * 3}px ${color}, 0 0 ${size * 6}px ${color}`,
+      boxShadow: `0 0 ${size * 3}px ${color}, 0 0 ${size * 7}px ${color}`,
       pointerEvents: "none",
       zIndex: "1",
       opacity: "0",
@@ -134,7 +139,7 @@ function createStars() {
       y,
       phase: Math.random() * TAU,
       speed: 0.5 + Math.random() * 1.2,
-      drift: 3 + Math.random() * 12
+      drift: 3 + Math.random() * 9
     });
   }
 }
@@ -145,7 +150,7 @@ function buildHeart() {
   const outlineCount = 110;
   const fillCount = 95;
 
-  // 1. Contorno do coração.
+  // 1. O contorno aparece gradualmente.
   for (let i = 0; i < outlineCount; i++) {
     const point = heartXY(
       (i / outlineCount) * TAU
@@ -159,7 +164,7 @@ function buildHeart() {
     );
   }
 
-  // 2. Preenchimento gradual.
+  // 2. O interior vai sendo preenchido.
   for (let i = 0; i < fillCount; i++) {
     const point = randomHeartPoint();
 
@@ -171,7 +176,7 @@ function buildHeart() {
     );
   }
 
-  // 3. Texto central aparece por último.
+  // 3. O texto central aparece por último.
   centerText = document.createElement("div");
   centerText.className = "heart-center";
   centerText.textContent = "I Love You";
@@ -200,7 +205,7 @@ function buildHeart() {
 function animate(now) {
   const elapsed = (now - startTime) / 1000;
 
-  // Surgimento gradual e cintilação das palavras.
+  // Palavras surgem e cintilam.
   for (const particle of particles) {
     const progress = Math.max(
       0,
@@ -209,15 +214,13 @@ function animate(now) {
 
     const flicker =
       0.88 +
-      0.12 * Math.sin(
-        elapsed * 3 + particle.phase
-      );
+      0.12 * Math.sin(elapsed * 3 + particle.phase);
 
     particle.element.style.opacity =
       String(progress * flicker);
   }
 
-  // Pulsação suave do coração inteiro.
+  // Pulsação suave, preservando o formato.
   const pulse =
     1 + 0.035 * Math.sin(elapsed * 2.4);
 
@@ -226,7 +229,7 @@ function animate(now) {
       `translate(-50%, -50%) translate(${particle.x * pulse}px, ${particle.y * pulse}px)`;
   }
 
-  // O texto aparece depois da formação do coração.
+  // Texto central aparece depois da formação.
   const centerProgress = Math.max(
     0,
     Math.min(1, (elapsed - 7.5) / 0.8)
@@ -235,29 +238,23 @@ function animate(now) {
   const textPulse =
     1 + 0.045 * Math.sin(elapsed * 2.4);
 
-  centerText.style.opacity =
-    String(centerProgress);
-
+  centerText.style.opacity = String(centerProgress);
   centerText.style.transform =
     `translate(-50%, -50%) scale(${textPulse})`;
 
-  // Estrelas cintilando e flutuando.
+  // Estrelas cintilam e flutuam suavemente.
   for (const star of stars) {
     const twinkle =
       0.2 +
       0.8 * (
-        (Math.sin(
-          elapsed * star.speed + star.phase
-        ) + 1) / 2
+        (Math.sin(elapsed * star.speed + star.phase) + 1) / 2
       );
 
     const driftX =
-      Math.sin(elapsed * 0.45 + star.phase) *
-      star.drift;
+      Math.sin(elapsed * 0.45 + star.phase) * star.drift;
 
     const driftY =
-      Math.cos(elapsed * 0.35 + star.phase) *
-      star.drift;
+      Math.cos(elapsed * 0.35 + star.phase) * star.drift;
 
     star.element.style.opacity = String(twinkle);
 
@@ -282,6 +279,11 @@ function resizeHeart() {
       `${Math.max(7, scale * 0.46)}px`;
   }
 
+  for (const star of stars) {
+    star.x *= ratio;
+    star.y *= ratio;
+  }
+
   centerText.style.fontSize =
     `${Math.max(20, scale * 2)}px`;
 }
@@ -292,6 +294,7 @@ function init() {
   ).forEach(element => element.remove());
 
   particles.length = 0;
+
   stars.forEach(star => star.element.remove());
   stars.length = 0;
 
