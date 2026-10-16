@@ -15,25 +15,24 @@ camera.position.set(0, 0, 34);
 
 const renderer = new THREE.WebGLRenderer({
   canvas,
-  antialias: true,
-  alpha: false
+  antialias: true
 });
 
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.outputColorSpace = THREE.SRGBColorSpace;
 
-const heartGroup = new THREE.Group();
-scene.add(heartGroup);
+const COUNT = 10000;
+const TAU = Math.PI * 2;
 
-const COUNT = 12000;
 const positions = new Float32Array(COUNT * 3);
+const targets = new Float32Array(COUNT * 3);
+const velocities = new Float32Array(COUNT * 3);
 const colors = new Float32Array(COUNT * 3);
-const sizes = new Float32Array(COUNT);
+const randoms = new Float32Array(COUNT * 4);
 
-const blue = new THREE.Color("#19aaff");
+const blue = new THREE.Color("#168fff");
 const cyan = new THREE.Color("#b8f5ff");
-const purple = new THREE.Color("#a04dff");
+const purple = new THREE.Color("#a34dff");
 
 function heartPoint(t) {
   return {
@@ -46,33 +45,29 @@ function heartPoint(t) {
 }
 
 for (let i = 0; i < COUNT; i++) {
-  const t = Math.random() * Math.PI * 2;
+  const t = Math.random() * TAU;
   const edge = heartPoint(t);
   const fill = Math.sqrt(Math.random());
 
-  const x = edge.x * fill;
-  const y = edge.y * fill;
+  targets[i * 3] = edge.x * fill * 0.65;
+  targets[i * 3 + 1] = edge.y * fill * 0.65;
+  targets[i * 3 + 2] = (Math.random() - 0.5) * 3.5 * fill;
 
-  // Profundidade para dar volume 3D
-  const depth = (Math.random() - 0.5) * 5 * fill;
+  positions[i * 3] = targets[i * 3];
+  positions[i * 3 + 1] = targets[i * 3 + 1];
+  positions[i * 3 + 2] = targets[i * 3 + 2];
 
-  positions[i * 3] = x * 0.65;
-  positions[i * 3 + 1] = y * 0.65;
-  positions[i * 3 + 2] = depth;
+  randoms[i * 4] = Math.random() * TAU;
+  randoms[i * 4 + 1] = 0.5 + Math.random() * 1.5;
+  randoms[i * 4 + 2] = Math.random();
+  randoms[i * 4 + 3] = Math.random() * TAU;
 
-  const colorChoice = Math.random();
-
-  const color = colorChoice < 0.68
-    ? blue
-    : colorChoice < 0.9
-      ? cyan
-      : purple;
+  const choice = Math.random();
+  const color = choice < 0.62 ? blue : choice < 0.86 ? cyan : purple;
 
   colors[i * 3] = color.r;
   colors[i * 3 + 1] = color.g;
   colors[i * 3 + 2] = color.b;
-
-  sizes[i] = 0.04 + Math.random() * 0.075;
 }
 
 const geometry = new THREE.BufferGeometry();
@@ -86,99 +81,126 @@ geometry.setAttribute(
 );
 
 const material = new THREE.PointsMaterial({
-  size: 0.12,
+  size: 0.13,
   vertexColors: true,
   transparent: true,
   opacity: 0.95,
   blending: THREE.AdditiveBlending,
-  depthWrite: false,
-  sizeAttenuation: true
+  depthWrite: false
 });
 
 const heart = new THREE.Points(geometry, material);
-heartGroup.add(heart);
+scene.add(heart);
 
-// Pequenos pontos de luz ao redor do coração
-const sparkCount = 900;
-const sparkPositions = new Float32Array(sparkCount * 3);
+// Poeira cósmica ao redor
+const dustCount = 700;
+const dustPositions = new Float32Array(dustCount * 3);
+const dustData = [];
 
-for (let i = 0; i < sparkCount; i++) {
-  sparkPositions[i * 3] = (Math.random() - 0.5) * 24;
-  sparkPositions[i * 3 + 1] = (Math.random() - 0.5) * 20;
-  sparkPositions[i * 3 + 2] = (Math.random() - 0.5) * 8;
+for (let i = 0; i < dustCount; i++) {
+  dustPositions[i * 3] = (Math.random() - 0.5) * 26;
+  dustPositions[i * 3 + 1] = (Math.random() - 0.5) * 22;
+  dustPositions[i * 3 + 2] = (Math.random() - 0.5) * 12;
+
+  dustData.push({
+    phase: Math.random() * TAU,
+    speed: 0.3 + Math.random() * 1.2
+  });
 }
 
-const sparkGeometry = new THREE.BufferGeometry();
-sparkGeometry.setAttribute(
+const dustGeometry = new THREE.BufferGeometry();
+dustGeometry.setAttribute(
   "position",
-  new THREE.BufferAttribute(sparkPositions, 3)
+  new THREE.BufferAttribute(dustPositions, 3)
 );
 
-const sparks = new THREE.Points(
-  sparkGeometry,
+const dust = new THREE.Points(
+  dustGeometry,
   new THREE.PointsMaterial({
-    color: "#64caff",
+    color: "#5dbbff",
     size: 0.045,
     transparent: true,
-    opacity: 0.7,
+    opacity: 0.65,
     blending: THREE.AdditiveBlending,
     depthWrite: false
   })
 );
-
-scene.add(sparks);
-
-// Base luminosa sob o coração
-const baseGeometry = new THREE.BufferGeometry();
-const baseCount = 1800;
-const basePositions = new Float32Array(baseCount * 3);
-
-for (let i = 0; i < baseCount; i++) {
-  const angle = Math.random() * Math.PI * 2;
-  const radius = Math.sqrt(Math.random()) * 4.8;
-
-  basePositions[i * 3] = Math.cos(angle) * radius;
-  basePositions[i * 3 + 1] = -9 + (Math.random() - 0.5) * 0.35;
-  basePositions[i * 3 + 2] = Math.sin(angle) * radius * 0.45;
-}
-
-baseGeometry.setAttribute(
-  "position",
-  new THREE.BufferAttribute(basePositions, 3)
-);
-
-const base = new THREE.Points(
-  baseGeometry,
-  new THREE.PointsMaterial({
-    color: "#218fff",
-    size: 0.09,
-    transparent: true,
-    opacity: 0.85,
-    blending: THREE.AdditiveBlending,
-    depthWrite: false
-  })
-);
-
-scene.add(base);
+scene.add(dust);
 
 const clock = new THREE.Clock();
+const temp = new THREE.Vector3();
+
+function smoothstep(a, b, x) {
+  x = THREE.MathUtils.clamp((x - a) / (b - a), 0, 1);
+  return x * x * (3 - 2 * x);
+}
 
 function animate() {
   requestAnimationFrame(animate);
 
   const t = clock.getElapsedTime();
 
-  // Pulsação suave
-  const pulse = 1 + Math.sin(t * 2.2) * 0.035;
+  // Ciclo: coração definido -> dispersão -> recomposição
+  const cycle = (t % 8) / 8;
+  const dissolve = Math.pow(
+    Math.sin(cycle * Math.PI),
+    2
+  );
+
+  // Faz as partículas voarem para fora e retornarem
+  for (let i = 0; i < COUNT; i++) {
+    const j = i * 3;
+    const k = i * 4;
+
+    const phase = randoms[k];
+    const speed = randoms[k + 1];
+    const direction = randoms[k + 2];
+    const wobble = randoms[k + 3];
+
+    const outward = dissolve * (2 + direction * 7);
+
+    const tx = targets[j]
+      + Math.cos(phase + t * speed) * outward;
+
+    const ty = targets[j + 1]
+      + Math.sin(phase * 1.3 + t * speed) * outward;
+
+    const tz = targets[j + 2]
+      + Math.sin(wobble + t * speed) * dissolve * 4;
+
+    // Pequenas vibrações constantes dão vida às partículas
+    const shimmer = 0.035;
+    const nx = Math.sin(t * speed + phase) * shimmer;
+    const ny = Math.cos(t * speed + wobble) * shimmer;
+
+    positions[j] += (tx + nx - positions[j]) * 0.055;
+    positions[j + 1] += (ty + ny - positions[j + 1]) * 0.055;
+    positions[j + 2] += (tz - positions[j + 2]) * 0.055;
+  }
+
+  geometry.attributes.position.needsUpdate = true;
+
+  const pulse = 1 + Math.sin(t * 2.4) * 0.035;
   heart.scale.set(pulse, pulse, pulse);
+  heart.rotation.y = Math.sin(t * 0.4) * 0.1;
+  heart.rotation.x = Math.sin(t * 0.3) * 0.04;
 
-  // Movimento tridimensional lento
-  heartGroup.rotation.y = Math.sin(t * 0.35) * 0.12;
-  heartGroup.rotation.x = Math.sin(t * 0.25) * 0.06;
+  // Movimento lento da poeira cósmica
+  const dustArray = dustGeometry.attributes.position.array;
 
-  // Brilho pulsante da base
-  base.material.opacity = 0.45 + (Math.sin(t * 2.5) + 1) * 0.22;
-  sparks.rotation.y = t * 0.015;
+  for (let i = 0; i < dustCount; i++) {
+    const j = i * 3;
+    const d = dustData[i];
+
+    dustArray[j + 1] += Math.sin(t * d.speed + d.phase) * 0.002;
+    dustArray[j] += Math.cos(t * d.speed + d.phase) * 0.001;
+
+    if (dustArray[j] > 13) dustArray[j] = -13;
+    if (dustArray[j] < -13) dustArray[j] = 13;
+  }
+
+  dustGeometry.attributes.position.needsUpdate = true;
+  dust.rotation.y = t * 0.01;
 
   renderer.render(scene, camera);
 }
@@ -186,10 +208,9 @@ function animate() {
 function resize() {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   renderer.setSize(window.innerWidth, window.innerHeight);
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 }
 
 window.addEventListener("resize", resize);
-
 animate();
