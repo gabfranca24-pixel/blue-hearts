@@ -1,17 +1,38 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
 html,
 body {
   width: 100%;
   height: 100%;
-  margin: 0;
-  padding: 0;
   overflow: hidden;
-  background-color: #000000 !important;
+  background: #000000 !important;
 }
 
+body {
+  position: relative;
+  font-family: Arial, sans-serif;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Fundo preto */
 #heartCanvas {
-  background-color: #000000;
+  position: fixed;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: #000000;
+  z-index: 0;
+  pointer-events: none;
 }
 
+/* Aura azul e roxa */
 body::before {
   content: "";
   position: fixed;
@@ -21,26 +42,44 @@ body::before {
   background:
     radial-gradient(
       ellipse at 50% 48%,
-      rgba(30, 144, 255, 0.24) 0%,
-      rgba(65, 105, 225, 0.12) 30%,
-      transparent 62%
+      rgba(30, 144, 255, 0.20) 0%,
+      transparent 55%
     ),
     radial-gradient(
       ellipse at 56% 54%,
-      rgba(138, 43, 226, 0.18) 0%,
-      transparent 58%
+      rgba(138, 43, 226, 0.14) 0%,
+      transparent 50%
     );
   animation: magicalAura 5s ease-in-out infinite alternate;
 }
 
 @keyframes magicalAura {
   from {
-    opacity: 0.65;
-    transform: scale(0.97);
+    opacity: 0.55;
   }
 
   to {
     opacity: 1;
-    transform: scale(1.04);
+  }
+}
+
+/* Mantém as palavras e o texto acima do fundo */
+.heart-word {
+  position: fixed;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.heart-center {
+  position: fixed;
+  z-index: 3;
+  pointer-events: none;
+}
+
+/* Compatibilidade com telas menores */
+@media (max-width: 600px) {
+  #heartCanvas {
+    width: 100vw;
+    height: 100dvh;
   }
 }
