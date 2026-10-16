@@ -243,20 +243,6 @@ const streamMaterial = new THREE.PointsMaterial({
 const energyStreams = new THREE.Points(streamGeometry, streamMaterial);
 scene.add(energyStreams);
 
-// ======================================
-// NÚCLEO LUMINOSO DA BASE
-// ======================================
-
-const core = new THREE.Mesh(
-  new THREE.SphereGeometry(0.45, 16, 16),
-  new THREE.MeshBasicMaterial({
-    color: "#168fff",
-    transparent: true,
-    opacity: 0.8,
-    blending: THREE.AdditiveBlending
-  })
-);
-
 core.position.set(0, -9.2, 0);
 scene.add(core);
 
@@ -372,10 +358,7 @@ function animate() {
   streamMaterial.opacity = 0.65 + (Math.sin(t * 4) + 1) * 0.15;
 
   // Núcleo pulsa junto da energia
-  const corePulse = 0.8 + (Math.sin(t * 5) + 1) * 0.22;
-  core.scale.setScalar(corePulse);
-  core.material.opacity = 0.5 + (Math.sin(t * 5) + 1) * 0.2;
-
+  
   renderer.render(scene, camera);
 }
 
