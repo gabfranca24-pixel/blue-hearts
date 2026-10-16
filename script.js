@@ -1,78 +1,107 @@
 const canvas = document.getElementById("heartCanvas");
 const ctx = canvas.getContext("2d");
 
-let hearts = [];
+let width, height;
+let particles = [];
+let time = 0;
 
-function resizeCanvas() {
+const COUNT = 850;
+const TAU = Math.PI * 2;
+
+function resize() {
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
 
-  canvas.width = window.innerWidth * dpr;
-  canvas.height = window.innerHeight * dpr;
+  width = window.innerWidth;
+  height = window.innerHeight;
 
-  canvas.style.width = window.innerWidth + "px";
-  canvas.style.height = window.innerHeight + "px";
+  canvas.width = width * dpr;
+  canvas.height = height * dpr;
+  canvas.style.width = width + "px";
+  canvas.style.height = height + "px";
 
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  createParticles();
 }
 
-function createHeart() {
+function heartPoint(t) {
   return {
-    x: Math.random() * window.innerWidth,
-    y: window.innerHeight + Math.random() * 100,
-    size: 8 + Math.random() * 15,
-    speed: 0.3 + Math.random() * 0.8,
-    drift: (Math.random() - 0.5) * 0.5,
-    opacity: 0.3 + Math.random() * 0.6,
-    rotation: (Math.random() - 0.5) * 0.5
+    x: 16 * Math.pow(Math.sin(t), 3),
+    y: -(13 * Math.cos(t) - 5 * Math.cos(2 * t)
+      - 2 * Math.cos(3 * t) - Math.cos(4 * t))
   };
 }
 
-function drawHeart(heart) {
-  ctx.save();
-  ctx.translate(heart.x, heart.y);
-  ctx.rotate(heart.rotation);
-  ctx.globalAlpha = heart.opacity;
-  ctx.fillStyle = "#d8b4fe";
-  ctx.shadowColor = "#c084fc";
-  ctx.shadowBlur = 15;
+function createParticles() {
+  particles = [];
 
-  ctx.beginPath();
-  ctx.moveTo(0, heart.size * 0.3);
-  ctx.bezierCurveTo(
-    -heart.size, -heart.size * 0.3,
-    -heart.size * 0.7, -heart.size,
-    0, -heart.size * 0.4
-  );
-  ctx.bezierCurveTo(
-    heart.size * 0.7, -heart.size,
-    heart.size, -heart.size * 0.3,
-    0, heart.size * 0.3
-  );
+  const scale = Math.min(width / 38, height / 34) * 0.85;
+  const cx = width / 2;
+  const cy = height / 2;
 
-  ctx.fill();
-  ctx.restore();
+  for (let i = 0; i < COUNT; i++) {
+    const t = Math.random() * TAU;
+    const edge = heartPoint(t);
+    const fill = Math.sqrt(Math.random());
+
+    const targetX = cx + edge.x * scale * fill;
+    const targetY = cy + edge.y * scale * fill;
+
+    particles.push({
+      x: Math.random() * width,
+      y: Math.random() * height,
+      targetX,
+      targetY,
+      size: 0.5 + Math.random() * 1.8,
+      phase: Math.random() * TAU,
+      speed: 0.5 + Math.random() * 1.5,
+      blue: Math.random()
+    });
+  }
 }
 
 function animate() {
-  ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+  time += 0.016;
 
-  if (hearts.length < 45 && Math.random() < 0.08) {
-    hearts.push(createHeart());
+  ctx.fillStyle = "rgba(5, 4, 18, 0.22)";
+  ctx.fillRect(0, 0, width, height);
+
+  const pulse = 1 + Math.sin(time * 2) * 0.035;
+  const dissolve = (Math.sin(time * 0.65) + 1) / 2;
+  const spread = dissolve * 42;
+
+  for (const p of particles) {
+    const wave = Math.sin(time * p.speed + p.phase);
+
+    const tx = width / 2 + (p.targetX - width / 2) * pulse;
+    const ty = height / 2 + (p.targetY - height / 2) * pulse;
+
+    const driftX = Math.cos(p.phase + time) * spread;
+    const driftY = Math.sin(p.phase * 1.4 + time) * spread;
+
+    const x = tx + driftX;
+    const y = ty + driftY;
+
+    p.x += (x - p.x) * 0.055;
+    p.y += (y - p.y) * 0.055;
+
+    const glow = 0.55 + wave * 0.35;
+    const color = p.blue > 0.5
+      ? `rgba(60, 170, 255, ${glow})`
+      : `rgba(185, 90, 255, ${glow})`;
+
+    ctx.beginPath();
+    ctx.fillStyle = color;
+    ctx.shadowColor = p.blue > 0.5 ? "#168cff" : "#a020f0";
+    ctx.shadowBlur = 5 + wave * 5;
+    ctx.arc(p.x, p.y, p.size, 0, TAU);
+    ctx.fill();
   }
 
-  hearts.forEach((heart) => {
-    heart.y -= heart.speed;
-    heart.x += heart.drift;
-
-    drawHeart(heart);
-  });
-
-  hearts = hearts.filter((heart) => heart.y > -40);
-
+  ctx.shadowBlur = 0;
   requestAnimationFrame(animate);
 }
 
-window.addEventListener("resize", resizeCanvas);
+window.addEventListener("resize", resize);
 
-resizeCanvas();
+resize();
 animate();
