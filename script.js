@@ -177,12 +177,14 @@ baseGeometry.setAttribute(
 );
 
 const baseMaterial = new THREE.PointsMaterial({
-  size: 0.11,
+  size: 0.09,
   vertexColors: true,
   transparent: true,
-  opacity: 0.95,
+  opacity: 0.85,
   blending: THREE.AdditiveBlending,
-  depthWrite: false
+  depthWrite: false,
+  sizeAttenuation: true,
+  alphaTest: 0.05
 });
 
 const energyBase = new THREE.Points(baseGeometry, baseMaterial);
